@@ -27,7 +27,9 @@ $services = array (
         'functions' => array(
             'auth_jwt_authenticate',
             'auth_jwt_validation',
-            'auth_jwt_update'
+            'auth_jwt_update',
+            'auth_jwt_create',
+            'auth_jwt_exists'
         ),
         'restrictedusers' => 1,
         'enabled' => 1
@@ -58,5 +60,21 @@ $functions = array(
         'description' => 'Updates user credentials and credentials via REST',
         'type' => 'write',
         'ajax' => false
+    ),
+    'auth_jwt_create' => array(
+        'classname' => 'auth_jwt_external',
+        'methodname' => 'create_user',
+        'classpath' => 'auth/jwt/externallib.php',
+        'description' => 'Create a user from an external source',
+        'type' => 'write',
+        'ajax' => 'false'
+    ),
+    'auth_jwt_exists' => array(
+        'classname' => 'auth_jwt_external',
+        'methodname' => 'user_exists',
+        'classpath' => 'auth/jwt/externallib.php',
+        'description' => 'Determine whether or not a user exists with a given idnumber',
+        'type' => 'write',
+        'ajax' => 'false'
     )
 );

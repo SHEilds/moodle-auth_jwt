@@ -84,7 +84,7 @@ class auth_plugin_jwt extends \auth_plugin_base
         profile_save_data($user);
 
         // Check the user was created
-        $user = $DB->get_record('user', array('idnumber' => $user->idnumber));
+        return $DB->get_record('user', array('idnumber' => $user->idnumber));
     }
 
     public function user_update($oldUser, $newUser)
@@ -247,8 +247,6 @@ class auth_plugin_jwt extends \auth_plugin_base
                     $fields = $rs->FetchRow();
                     // Convert the associative array to an array of its values so we don't have to worry about the case of its keys.
                     $fields = array_values($fields);
-
-                    var_dump($fields);
 
                     foreach (array_keys($selectfields) as $index => $localname)
                     {
@@ -419,7 +417,8 @@ class auth_plugin_jwt extends \auth_plugin_base
         }
 
         // Update existing accounts.
-        if ($do_updates) {
+        if ($do_updates)
+        {
             // Narrow down what fields we need to update.
             $all_keys = array_keys(get_object_vars($this->config));
             $updatekeys = array();
@@ -435,7 +434,8 @@ class auth_plugin_jwt extends \auth_plugin_base
                 }
             }
 
-            unset($all_keys); unset($key);
+            unset($all_keys);
+            unset($key);
 
             // Only go ahead if we actually have fields to update locally.
             if (!empty($updatekeys))

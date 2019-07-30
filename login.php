@@ -29,8 +29,6 @@ $GLOBALS['valid_token'] = true;
 $payload = JWT::decode($token);
 $subject = get_complete_user_data('idnumber', $userId);
 
-\var_dump($payload);
-
 if ($subject->id === $payload->sub)
 {
     $user = authenticate_user_login($subject->username, time());

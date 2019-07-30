@@ -76,7 +76,8 @@ class auth_jwt_external extends external_api
     {
         return new external_function_parameters(
             array(
-                'token' => new external_value(PARAM_TEXT, 'The encoded JWT provided to a user.')
+                'token' => new external_value(PARAM_TEXT, 'The encoded JWT provided to a user.'),
+                'secret' => new external_value(PARAM_TEXT, 'The JWT secret')
             )
         );
     }
@@ -90,8 +91,17 @@ class auth_jwt_external extends external_api
         );
     }
 
-    public static function validation($token)
+    public static function validation($token, $secret)
     {
+        global $CFG;
+
+        $config = get_config('auth_jwt');
+
+        if ($secret != $config->secret)
+        {
+            Throw new Exception("Incorrect JWT secret");
+        }
+
         $payload = JWT::decode($token);
         if(!empty($payload))
         {
@@ -105,11 +115,73 @@ class auth_jwt_external extends external_api
         ];
     }
 
+    public static function create_user_parameters()
+    {
+        return new external_function_parameters(
+            array(
+                'secret' => new external_value(PARAM_TEXT, 'The JWT secret'),
+                'userdata' => new external_single_structure(
+                    array(
+                        'idnumber' => new external_value(PARAM_INT, 'The ID of the external user'),
+                        'username' => new external_value(PARAM_TEXT, 'The new username of the external user'),
+                        'email' => new external_value(PARAM_TEXT, 'The new email of the external user'),
+                        'firstname' => new external_value(PARAM_TEXT, 'The first name of the user'),
+                        'lastname' => new external_value(PARAM_TEXT, 'The last name of the user'),
+                    )
+                )
+            )
+        );
+    }
+
+    public static function create_user_returns()
+    {
+        return new external_single_structure(
+            array(
+                'user' => new external_value(PARAM_INT, 'The ID of the Moodle user')
+            )
+        );
+    }
+
+    public static function create_user($secret, $userdata)
+    {
+        global $CFG, $DB;
+
+        $config = get_config('auth_jwt');
+
+        if ($secret != $config->secret)
+        {
+            Throw new Exception("Incorrect JWT secret");
+        }
+
+        $user = new stdClass();
+
+        foreach ($userdata as $property => $value)
+        {
+            $user->$property = $value;
+        }
+
+        $user->auth = 'jwt';
+        $user->deleted = 0;
+        $user->confirmed = 1;
+        $user->mnethostid = 1;
+
+        $auth = get_auth_plugin('jwt');
+        $newUser = $auth->user_signup($user, false);
+
+        if (!$newUser)
+        {
+            throw new Exception("User was unable to be created");
+        }
+
+        return $newUser->id;
+    }
+
     public static function update_user_parameters()
     {
         return new external_function_parameters(
             array(
                 'jwt' => new external_value(PARAM_TEXT, 'The JWT'),
+                'secret' => new external_value(PARAM_TEXT, 'The JWT secret'),
                 'userdata' => new external_single_structure(
                     array(
                         'idnumber' => new external_value(PARAM_INT, 'The ID of the external user'),
@@ -132,9 +204,18 @@ class auth_jwt_external extends external_api
         );
     }
 
-    public static function update_user($jwt, $userdata)
+    public static function update_user($jwt, $secret, $userdata)
     {
-        global $DB;
+        global $CFG, $DB;
+
+        $config = get_config('auth_jwt');
+
+        if ($secret != $config->secret)
+        {
+            Throw new Exception("Incorrect JWT secret");
+        }
+
+        \error_log(json_encode($userdata));
 
         // Validate the JWT
         $payload = JWT::decode($jwt);
@@ -165,6 +246,7 @@ class auth_jwt_external extends external_api
             }
             else
             {
+                \error_log("updating user");
                 // Update the user with the properties provided
                 foreach ($userdata as $property => $value)
                 {
@@ -181,6 +263,44 @@ class auth_jwt_external extends external_api
 
         return [
             'user' => -1
+        ];
+    }
+
+    public static function user_exists_parameters()
+    {
+        return new external_function_parameters(
+            array(
+                'idnumber' => new external_value(PARAM_INT, 'ID number of the user')
+            )
+        );
+    }
+
+    public static function user_exists_returns()
+    {
+        return new external_single_structure(
+            array(
+                'exists' => new external_value(PARAM_BOOL, 'Whether or not the user exists')
+            )
+        );
+    }
+
+    public static function user_exists($idnumber)
+    {
+        global $DB;
+
+        $idnumber = \intval($idnumber);
+
+        $user = $DB->get_record('user', array('idnumber' => $idnumber));
+
+        if (!$user)
+        {
+            return [
+                'exists' => false
+            ];
+        }
+
+        return [
+            'exists' => true
         ];
     }
 }
