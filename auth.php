@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->libdir.'/authlib.php');
-require_once($CFG->libdir.'/adodb/adodb.inc.php');
+require_once($CFG->libdir . '/authlib.php');
+require_once($CFG->libdir . '/adodb/adodb.inc.php');
 
 class auth_plugin_jwt extends \auth_plugin_base
 {
@@ -52,7 +52,7 @@ class auth_plugin_jwt extends \auth_plugin_base
      * Returns true if the username and password work or don't exist and false
      * if the user exists and the password is wrong.
      *
-     * @param string $username The username
+     * @param string $username The username 
      * @param string $password The password
      * @return bool Authentication success or failure.
      */
@@ -72,7 +72,7 @@ class auth_plugin_jwt extends \auth_plugin_base
     {
         global $CFG, $DB, $PAGE, $OUTPUT;
 
-        require_once($CFG->dirroot.'/user/profile/lib.php');
+        require_once($CFG->dirroot . '/user/profile/lib.php');
 
         if ($this->user_exists($user->idnumber))
         {
@@ -89,18 +89,11 @@ class auth_plugin_jwt extends \auth_plugin_base
 
     public function user_update($oldUser, $newUser)
     {
-        if ($oldUser->email != $newUser->email)
-        {
-            debugging(get_string('userchangeemail', 'auth_jwt'), 'auth_jwt');
-            return false;
-        }
-
         return null;
     }
 
     public function user_delete($oldUser)
     {
-
     }
 
     /**
@@ -215,11 +208,11 @@ class auth_plugin_jwt extends \auth_plugin_base
             $select = array();
 
             $fieldcount = 0;
-            foreach ($selectfields as $localname=>$externalname)
+            foreach ($selectfields as $localname => $externalname)
             {
                 // Without aliasing, multiple occurrences of the same external
                 // name can coalesce in only occurrence in the result.
-                $select[] = "$externalname AS F".$fieldcount;
+                $select[] = "$externalname AS F" . $fieldcount;
                 $fieldcount++;
             }
 
@@ -229,7 +222,6 @@ class auth_plugin_jwt extends \auth_plugin_base
                 $sql = "SELECT $select
                         FROM {$this->config->databasetable}
                         WHERE {$this->config->field_map_idnumber} = {$identifier}";
-
             }
             else
             {
@@ -275,7 +267,7 @@ class auth_plugin_jwt extends \auth_plugin_base
         $user_array = truncate_userinfo($this->get_userinfo($idnumber, true));
 
         $user = new stdClass();
-        foreach($user_array as $key=>$value)
+        foreach ($user_array as $key => $value)
         {
             $user->{$key} = $value;
         }
@@ -294,7 +286,7 @@ class auth_plugin_jwt extends \auth_plugin_base
 
         if (!$rs)
         {
-            print_error('auth_jwtcantconnect','auth_jwt');
+            print_error('auth_jwtcantconnect', 'auth_jwt');
         }
         else if (!$rs->EOF)
         {
@@ -302,7 +294,7 @@ class auth_plugin_jwt extends \auth_plugin_base
             {
                 $rec = array_change_key_case((array)$rec, CASE_LOWER);
                 // Set the index as the user's idnumber, instead.
-                $result[$rec[$this->config->field_map_idnumber]] = $rec[strtolower($this->config->databaseuserfield)];
+                $result[$rec[$this->config->field_map_idnumber]] = strtolower(trim($rec[$this->config->databaseuserfield]));
                 // array_push($result, $rec[strtolower($this->config->databaseuserfield)]);
             }
         }
@@ -328,7 +320,7 @@ class auth_plugin_jwt extends \auth_plugin_base
      * @param bool $do_updates  Optional: set to true to force an update of existing accounts
      * @return int 0 means success, 1 means failure
      */
-    function sync_users(progress_trace $trace, $do_updates=false)
+    function sync_users(progress_trace $trace, $do_updates = false)
     {
         global $CFG, $DB;
 
@@ -341,7 +333,7 @@ class auth_plugin_jwt extends \auth_plugin_base
         if (!empty($this->config->removeuser))
         {
             $suspendselect = "";
-            if ($this->config->removeuser == AUTH_REMOVEUSER_SUSPEND)
+            if ($this->config->removeuser == get_string('auth_remove_suspend', 'auth'))
             {
                 $suspendselect = "AND u.suspended = 0";
             }
@@ -390,18 +382,18 @@ class auth_plugin_jwt extends \auth_plugin_base
 
                 foreach ($removeusers as $user)
                 {
-                    if ($this->config->removeuser == AUTH_REMOVEUSER_FULLDELETE)
+                    if ($this->config->removeuser == get_string('auth_remove_delete', 'auth'))
                     {
                         delete_user($user);
-                        $trace->output(get_string('auth_jwtdeleteuser', 'auth_jwt', array('name'=>$user->username, 'id'=>$user->id)), 1);
+                        $trace->output(get_string('auth_jwtdeleteuser', 'auth_jwt', array('name' => $user->username, 'id' => $user->id)), 1);
                     }
-                    else if ($this->config->removeuser == AUTH_REMOVEUSER_SUSPEND)
+                    else if ($this->config->removeuser == get_string('auth_remove_suspend', 'auth'))
                     {
                         $updateuser = new stdClass();
                         $updateuser->id   = $user->id;
                         $updateuser->suspended = 1;
                         user_update_user($updateuser, false);
-                        $trace->output(get_string('auth_jwtsuspenduser', 'auth_jwt', array('name'=>$user->username, 'id'=>$user->id)), 1);
+                        $trace->output(get_string('auth_jwtsuspenduser', 'auth_jwt', array('name' => $user->username, 'id' => $user->id)), 1);
                     }
                 }
             }
@@ -425,7 +417,7 @@ class auth_plugin_jwt extends \auth_plugin_base
 
             foreach ($all_keys as $key)
             {
-                if (preg_match('/^field_updatelocal_(.+)$/',$key, $match))
+                if (preg_match('/^field_updatelocal_(.+)$/', $key, $match))
                 {
                     if ($this->config->{$key} === 'onlogin')
                     {
@@ -443,8 +435,8 @@ class auth_plugin_jwt extends \auth_plugin_base
                 $update_users = array();
 
                 // All the drivers can cope with chunks of 10,000. See line 4491 of lib/dml/tests/dml_est.php
-                $userlistchunks = array_chunk($userlist , 10000, true);
-                foreach($userlistchunks as $userlistchunk)
+                $userlistchunks = array_chunk($userlist, 10000, true);
+                foreach ($userlistchunks as $userlistchunk)
                 {
                     list($in_sql, $params) = $DB->get_in_or_equal(array_keys($userlistchunk), SQL_PARAMS_NAMED, 'u', true);
 
@@ -459,16 +451,16 @@ class auth_plugin_jwt extends \auth_plugin_base
 
                 if ($update_users)
                 {
-                    $trace->output("User entries to update: ".count($update_users));
+                    $trace->output("User entries to update: " . count($update_users));
                     foreach ($update_users as $user)
                     {
                         if ($this->update_user_record($user->idnumber, $updatekeys, false, (bool) $user->suspended))
                         {
-                            $trace->output(get_string('auth_jwtupdatinguser', 'auth_jwt', array('name'=>$user->username, 'id'=>$user->id)), 1);
+                            $trace->output(get_string('auth_jwtupdatinguser', 'auth_jwt', array('name' => $user->username, 'id' => $user->id)), 1);
                         }
                         else
                         {
-                            $trace->output(get_string('auth_jwtupdatinguser', 'auth_jwt', array('name'=>$user->username, 'id'=>$user->id))." - ".get_string('skipped'), 1);
+                            $trace->output(get_string('auth_jwtupdatinguser', 'auth_jwt', array('name' => $user->username, 'id' => $user->id)) . " - " . get_string('skipped'), 1);
                         }
                     }
 
@@ -481,15 +473,15 @@ class auth_plugin_jwt extends \auth_plugin_base
         // Create missing accounts.
         // NOTE: this is very memory intensive and generally inefficient.
         $suspendselect = "";
-        if ($this->config->removeuser == AUTH_REMOVEUSER_SUSPEND)
+        if ($this->config->removeuser == get_string('auth_remove_suspend', 'auth'))
         {
             $suspendselect = "AND u.suspended = 0";
         }
         $sql = "SELECT u.id, u.username
                   FROM {user} u
-                 WHERE u.auth=:authtype AND u.deleted='0' AND mnethostid=:mnethostid $suspendselect";
+                 WHERE u.deleted='0' $suspendselect";
 
-        $users = $DB->get_records_sql($sql, array('authtype'=>$this->authtype, 'mnethostid'=>$CFG->mnet_localhost_id));
+        $users = $DB->get_records_sql($sql);
 
         // Simplify down to usernames.
         $usernames = array();
@@ -508,14 +500,14 @@ class auth_plugin_jwt extends \auth_plugin_base
 
         if (!empty($add_users))
         {
-            $trace->output(get_string('auth_jwtuserstoadd','auth_jwt',count($add_users)));
+            $trace->output(get_string('auth_jwtuserstoadd', 'auth_jwt', count($add_users)));
 
             // Do not use transactions around this foreach, we want to skip problematic users, not revert everything.
-            foreach($add_users as $userIdNumber => $user)
+            foreach ($add_users as $userIdNumber => $user)
             {
-                $username = $user;
+                $username = trim($user);
 
-                if ($this->config->removeuser == AUTH_REMOVEUSER_SUSPEND)
+                if ($this->config->removeuser == get_string('auth_remove_suspend', 'auth'))
                 {
                     $olduser = $DB->get_record(
                         'user',
@@ -523,7 +515,6 @@ class auth_plugin_jwt extends \auth_plugin_base
                             'idnumber' => $userIdNumber,
                             'deleted' => 0,
                             'suspended' => 1,
-                            'mnethostid' => $CFG->mnet_localhost_id,
                             'auth' => $this->authtype
                         )
                     );
@@ -534,8 +525,10 @@ class auth_plugin_jwt extends \auth_plugin_base
                         $updateuser->id = $olduser->id;
                         $updateuser->suspended = 0;
                         user_update_user($updateuser);
-                        $trace->output(get_string('auth_jwtreviveduser', 'auth_jwt', array('name' => $username,
-                            'id' => $olduser->id)), 1);
+                        $trace->output(get_string('auth_jwtreviveduser', 'auth_jwt', array(
+                            'name' => $username,
+                            'id' => $olduser->id
+                        )), 1);
 
                         continue;
                     }
@@ -545,7 +538,7 @@ class auth_plugin_jwt extends \auth_plugin_base
 
                 // Prep a few params.
                 $user = $this->get_userinfo_asobj($userIdNumber);
-                $user->username   = strtolower($username);
+                $user->username   = trim(strtolower($username));
                 $user->idnumber   = $userIdNumber;
                 $user->confirmed  = 1;
                 $user->auth       = $this->authtype;
@@ -556,48 +549,63 @@ class auth_plugin_jwt extends \auth_plugin_base
                     $user->lang = $CFG->lang;
                 }
 
-                $collision = $DB->get_record_select(
+                $duplicateIdnumberCollision = $DB->get_record('user', array('idnumber' => $user->idnumber));
+                $alternateAuthCollision = $DB->get_record_select(
                     'user',
-                    "idnumber = :idnumber AND mnethostid = :mnethostid AND auth <> :auth",
+                    "idnumber = :idnumber AND auth <> :auth",
                     array(
-                        'idnumber'=>$user->idnumber,
-                        'mnethostid'=>$CFG->mnet_localhost_id,
-                        'auth'=>$this->authtype
+                        'idnumber' => $user->idnumber,
+                        'auth' => $this->authtype,
                     ),
-                    'id,username,auth'
+                    'id,auth'
                 );
 
-                if ($collision)
+                if ($duplicateIdnumberCollision)
                 {
-                    $trace->output(get_string('auth_jwtinsertuserduplicate', 'auth_jwt', array('username'=>$user->username, 'auth'=>$collision->auth)), 1);
+                    $trace->output(get_string('auth_jwtinseruserduplicateid', 'auth_jwt', array('username' => $user->username, 'idnumber' => $userIdNumber)), 1);
                     continue;
                 }
 
-                try
+                if ($alternateAuthCollision)
                 {
-                    $id = user_create_user($user, false); // It is truly a new user.
-                    $trace->output(get_string('auth_jwtinsertuser', 'auth_jwt', array('name'=>$user->username, 'id'=>$id)), 1);
-                }
-                catch (moodle_exception $e)
-                {
-                    $trace->output(get_string('auth_jwtinsertusererror', 'auth_jwt', $user->username), 1);
+                    $trace->output(get_string('auth_jwtinsertuserduplicate', 'auth_jwt', array('username' => $user->username, 'auth' => $collision->auth)), 1);
                     continue;
                 }
 
-                // If relevant, tag for password generation.
-                if ($this->is_internal())
+                if (!$alternateAuthCollision && !$duplicateIdnumberCollision)
                 {
-                    set_user_preference('auth_forcepasswordchange', 1, $id);
-                    set_user_preference('create_password', 1, $id);
+                    try
+                    {
+                        // $trace->output("Collision detection: " . json_encode($collision));
+                        // $trace->output("Attempting to create user: " . json_encode($user));
+                        $id = user_create_user($user, false); // It is truly a new user.
+                        $trace->output(get_string('auth_jwtinsertuser', 'auth_jwt', array('name' => $user->username, 'id' => $id)), 1);
+
+                        // If relevant, tag for password generation.
+                        if ($this->is_internal())
+                        {
+                            set_user_preference('auth_forcepasswordchange', 1, $id);
+                            set_user_preference('create_password', 1, $id);
+                        }
+
+                        // Save custom profile fields here.
+                        require_once($CFG->dirroot . '/user/profile/lib.php');
+                        $user->id = $id;
+                        profile_save_data($user);
+
+                        // Make sure user context is present.
+                        context_user::instance($id);
+                    }
+                    catch (moodle_exception $e)
+                    {
+                        $a = new stdClass();
+                        $a->username = $user->username;
+                        $a->message = $e->getMessage();
+
+                        $trace->output(get_string('auth_jwtinsertusererrorverbose', 'auth_jwt', $a), 1);
+                        continue;
+                    }
                 }
-
-                // Save custom profile fields here.
-                require_once($CFG->dirroot . '/user/profile/lib.php');
-                $user->id = $id;
-                profile_save_data($user);
-
-                // Make sure user context is present.
-                context_user::instance($id);
             }
 
             unset($add_users);
@@ -613,19 +621,18 @@ class auth_plugin_jwt extends \auth_plugin_base
         return !$this->is_internal();
     }
 
-    function user_exists($username)
+    function user_exists($idnumber)
     {
-        $extusername = core_text::convert($username, 'utf-8', $this->config->databaseencoding);
         $authdb = $this->db_init();
         $result = false;
 
         $rs = $authdb->Execute("SELECT *
                                   FROM {$this->config->databasetable}
-                                 WHERE {$this->config->databaseuserfield} = '".$this->ext_addslashes($extusername)."' ");
+                                 WHERE {$this->config->field_map_idnumber} = " . $idnumber);
 
         if (!$rs)
         {
-            print_error('auth_hashdbcantconnect','auth_hashdb');
+            print_error('auth_hashdbcantconnect', 'auth_hashdb');
         }
         else if (!$rs->EOF)
         {
@@ -696,8 +703,9 @@ class auth_plugin_jwt extends \auth_plugin_base
 
     public function logoutpage_hook()
     {
-        global $CFG;
         global $redirect;
+
+        $GLOBALS['valid_token'] = false;
 
         $config = get_config('auth_jwt');
         $redirect = $config->logouturi;
@@ -718,14 +726,15 @@ class auth_plugin_jwt extends \auth_plugin_base
         return false;
     }
 
-    public function is_configured() {
+    public function is_configured()
+    {
 
         $configured = !empty($this->config->databasehost) &&
-                      !empty($this->config->databaseuser) &&
-                      !empty($this->config->database) &&
-                      !empty($this->config->databasetable) &&
-                      !empty($this->config->databaseuserfield) &&
-                      !empty($this->config->driver);
+            !empty($this->config->databaseuser) &&
+            !empty($this->config->database) &&
+            !empty($this->config->databasetable) &&
+            !empty($this->config->databaseuserfield) &&
+            !empty($this->config->driver);
 
         return $configured;
     }

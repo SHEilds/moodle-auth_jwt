@@ -56,8 +56,6 @@ class auth_jwt_external extends external_api
         global $DB;
 
         $params = self::validate_parameters(self::authenticate_parameters(), array('idnumber' => $idnumber));
-        $transaction = $DB->start_delegated_transaction();
-
         $user = get_complete_user_data('idnumber', $idnumber);
 
         if (!$user)
@@ -93,17 +91,15 @@ class auth_jwt_external extends external_api
 
     public static function validation($token, $secret)
     {
-        global $CFG;
-
         $config = get_config('auth_jwt');
 
         if ($secret != $config->secret)
         {
-            Throw new Exception("Incorrect JWT secret");
+            throw new Exception("Incorrect JWT secret");
         }
 
         $payload = JWT::decode($token);
-        if(!empty($payload))
+        if (!empty($payload))
         {
             return [
                 'valid' => true
@@ -144,13 +140,11 @@ class auth_jwt_external extends external_api
 
     public static function create_user($secret, $userdata)
     {
-        global $CFG, $DB;
-
         $config = get_config('auth_jwt');
 
         if ($secret != $config->secret)
         {
-            Throw new Exception("Incorrect JWT secret");
+            throw new Exception("Incorrect JWT secret");
         }
 
         $user = new stdClass();
@@ -163,7 +157,8 @@ class auth_jwt_external extends external_api
         $user->auth = 'jwt';
         $user->deleted = 0;
         $user->confirmed = 1;
-        $user->mnethostid = 1;
+
+        $user->username = trim($user->username);
 
         $auth = get_auth_plugin('jwt');
         $newUser = $auth->user_signup($user, false);
@@ -206,20 +201,18 @@ class auth_jwt_external extends external_api
 
     public static function update_user($jwt, $secret, $userdata)
     {
-        global $CFG, $DB;
+        global $DB;
 
         $config = get_config('auth_jwt');
 
         if ($secret != $config->secret)
         {
-            Throw new Exception("Incorrect JWT secret");
+            throw new Exception("Incorrect JWT secret");
         }
-
-        \error_log(json_encode($userdata));
 
         // Validate the JWT
         $payload = JWT::decode($jwt);
-        if(!empty($payload))
+        if (!empty($payload))
         {
             $user = $DB->get_record('user', array(
                 'idnumber' => $userdata['idnumber']
@@ -239,19 +232,21 @@ class auth_jwt_external extends external_api
                 $user->auth = 'jwt';
                 $user->deleted = 0;
                 $user->confirmed = 1;
-                $user->mnethostid = 1;
+
+                $user->username = trim($user->username);
 
                 $auth = get_auth_plugin('jwt');
                 $created = $auth->user_signup($user, false);
             }
             else
             {
-                \error_log("updating user");
                 // Update the user with the properties provided
                 foreach ($userdata as $property => $value)
                 {
                     $user->$property = $value;
                 }
+
+                $user->username = trim($user->username);
 
                 user_update_user($user, false);
             }
@@ -292,15 +287,15 @@ class auth_jwt_external extends external_api
 
         $user = $DB->get_record('user', array('idnumber' => $idnumber));
 
-        if (!$user)
+        if ($user)
         {
             return [
-                'exists' => false
+                'exists' => true
             ];
         }
 
         return [
-            'exists' => true
+            'exists' => false
         ];
     }
 }

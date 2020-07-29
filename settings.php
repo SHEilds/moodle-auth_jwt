@@ -37,25 +37,33 @@ if ($hassiteconfig)
     $settings->add(new admin_setting_configtext(
         'auth_jwt/issuer',
         get_string('jwtissuer', 'auth_jwt'),
-        get_string('jwtissuer_desc', 'auth_jwt'), '', PARAM_TEXT
+        get_string('jwtissuer_desc', 'auth_jwt'),
+        '',
+        PARAM_TEXT
     ));
 
-    $settings->add(new admin_setting_configpasswordunmask (
+    $settings->add(new admin_setting_configpasswordunmask(
         'auth_jwt/secret',
         get_string('jwtsecret', 'auth_jwt'),
-        get_string('jwtsecret_desc', 'auth_jwt'), '', PARAM_TEXT
+        get_string('jwtsecret_desc', 'auth_jwt'),
+        '',
+        PARAM_TEXT
     ));
 
     $settings->add(new admin_setting_configduration(
         'auth_jwt/expiry',
         get_string('jwtexpiry', 'auth_jwt'),
-        get_string('jwtexpiry_desc', 'auth_jwt'), 0, 1
+        get_string('jwtexpiry_desc', 'auth_jwt'),
+        0,
+        1
     ));
 
     $settings->add(new admin_setting_configtext(
         'auth_jwt/logouturi',
         get_string('jwtlogoutpage', 'auth_jwt'),
-        get_string('jwtlogoutpage_desc', 'auth_jwt'), '', PARAM_TEXT
+        get_string('jwtlogoutpage_desc', 'auth_jwt'),
+        '',
+        PARAM_TEXT
     ));
 
     /**
@@ -66,49 +74,65 @@ if ($hassiteconfig)
     $settings->add(new admin_setting_configtext(
         'auth_jwt/databasehost',
         get_string('jwtdatabasehost', 'auth_jwt'),
-        get_string('jwtdatabasehost_desc', 'auth_jwt'), '', PARAM_TEXT
+        get_string('jwtdatabasehost_desc', 'auth_jwt'),
+        '',
+        PARAM_TEXT
     ));
 
     $settings->add(new admin_setting_configtext(
         'auth_jwt/databaseport',
         get_string('jwtdatabaseport', 'auth_jwt'),
-        get_string('jwtdatabaseport_desc', 'auth_jwt'), '3306', PARAM_INT
+        get_string('jwtdatabaseport_desc', 'auth_jwt'),
+        '3306',
+        PARAM_INT
     ));
 
     $settings->add(new admin_setting_configtext(
         'auth_jwt/databaseuser',
         get_string('jwtdatabaseuser', 'auth_jwt'),
-        get_string('jwtdatabaseuser_desc', 'auth_jwt'), '', PARAM_TEXT
+        get_string('jwtdatabaseuser_desc', 'auth_jwt'),
+        '',
+        PARAM_TEXT
     ));
 
     $settings->add(new admin_setting_configpasswordunmask(
         'auth_jwt/databaseuserpassword',
         get_string('jwtdatabaseuserpassword', 'auth_jwt'),
-        get_string('jwtdatabaseuserpassword_desc', 'auth_jwt'), '', PARAM_TEXT
+        get_string('jwtdatabaseuserpassword_desc', 'auth_jwt'),
+        '',
+        PARAM_TEXT
     ));
 
     $settings->add(new admin_setting_configtext(
         'auth_jwt/database',
         get_string('jwtdatabase', 'auth_jwt'),
-        get_string('jwtdatabase_desc', 'auth_jwt'), '', PARAM_TEXT
+        get_string('jwtdatabase_desc', 'auth_jwt'),
+        '',
+        PARAM_TEXT
     ));
 
     $settings->add(new admin_setting_configtext(
         'auth_jwt/databasetable',
         get_string('jwtdatabasetable', 'auth_jwt'),
-        get_string('jwtdatabasetable_desc', 'auth_jwt'), '', PARAM_TEXT
+        get_string('jwtdatabasetable_desc', 'auth_jwt'),
+        '',
+        PARAM_TEXT
     ));
 
     $settings->add(new admin_setting_configtext(
         'auth_jwt/databaseuserfield',
         get_string('jwtdatabaseuserfield', 'auth_jwt'),
-        get_string('jwtdatabaseuserfield_desc', 'auth_jwt'), '', PARAM_TEXT
+        get_string('jwtdatabaseuserfield_desc', 'auth_jwt'),
+        '',
+        PARAM_TEXT
     ));
 
     $settings->add(new admin_setting_configselect(
         'auth_jwt/sybasequoting',
         get_string('jwtsybasequoting', 'auth_jwt'),
-        get_string('jwtsybasequoting_desc', 'auth_jwt'), 0, $yesno
+        get_string('jwtsybasequoting_desc', 'auth_jwt'),
+        0,
+        $yesno
     ));
 
     $dboptions = array();
@@ -126,35 +150,44 @@ if ($hassiteconfig)
     $settings->add(new admin_setting_configselect(
         'auth_jwt/driver',
         get_string('jwtdriver', 'auth_jwt'),
-        get_string('jwtdriver_desc', 'auth_jwt'), 'mysqli', $dboptions)
-    );
+        get_string('jwtdriver_desc', 'auth_jwt'),
+        'mysqli',
+        $dboptions
+    ));
 
     $settings->add(new admin_setting_configtext(
         'auth_jwt/databaseencoding',
         get_string('jwtdatabaseencoding', 'auth_jwt'),
-        get_string('jwtdatabaseencoding_desc', 'auth_jwt'), 'utf-8', PARAM_RAW_TRIMMED)
-    );
+        get_string('jwtdatabaseencoding_desc', 'auth_jwt'),
+        'utf-8',
+        PARAM_RAW_TRIMMED
+    ));
 
     /**
      * Sync options
      */
     $settings->add(new admin_setting_heading('auth_jwt/usersync', get_string('auth_sync_script', 'auth'), ''));
 
-    $deleteopt = array();
-    $deleteopt[AUTH_REMOVEUSER_KEEP] = get_string('auth_remove_keep', 'auth');
-    $deleteopt[AUTH_REMOVEUSER_SUSPEND] = get_string('auth_remove_suspend', 'auth');
-    $deleteopt[AUTH_REMOVEUSER_FULLDELETE] = get_string('auth_remove_delete', 'auth');
+    $deleteopt = array(
+        get_string('auth_remove_keep', 'auth'),
+        get_string('auth_remove_suspend', 'auth'),
+        get_string('auth_remove_delete', 'auth')
+    );
 
     $settings->add(new admin_setting_configselect(
         'auth_jwt/removeuser',
         get_string('auth_remove_user_key', 'auth'),
-        get_string('auth_remove_user', 'auth'), AUTH_REMOVEUSER_KEEP, $deleteopt
+        get_string('auth_remove_user', 'auth'),
+        get_string('auth_remove_keep', 'auth'),
+        $deleteopt
     ));
 
     $settings->add(new admin_setting_configselect(
         'auth_jwt/updateusers',
         get_string('jwtupdateusers', 'auth_jwt'),
-        get_string('jwtupdateusers_desc', 'auth_jwt'), 0, $yesno
+        get_string('jwtupdateusers_desc', 'auth_jwt'),
+        0,
+        $yesno
     ));
 
     $authplugin = get_auth_plugin('jwt');

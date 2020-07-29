@@ -84,5 +84,7 @@ $string['userchangeemail'] = 'For authentication purposes, users are not allowed
 $string['auth_jwtrevivedusererror'] = 'Error reviving user {$a}';
 $string['auth_jwtdeleteusererror'] = 'Error deleting user {$a}';
 $string['auth_jwtinsertusererror'] = 'Error inserting user {$a}';
+$string['auth_jwtinsertusererrorverbose'] = 'Error inserting user {$a->username} ({$a->message})';
 $string['auth_jwtinsertuserduplicate'] = 'Error inserting user {$a->username} - user with this username was already created through \'{$a->auth}\' plugin.';
+$string['auth_jwtinseruserduplicateid'] = 'Error inserting user {$a->username} with idnumber {$a->idnumber}, a user with the idnumber already exists.';
 $string['auth_jwtcantconnect'] = 'Could not connect to the specified authentication database...';

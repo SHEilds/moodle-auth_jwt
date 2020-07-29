@@ -25,7 +25,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2019072600;
+$plugin->version   = 2019073003;
 $plugin->requires  = 2014051200;
 $plugin->component = 'auth_jwt';
 $plugin->maturity  = MATURITY_ALPHA;

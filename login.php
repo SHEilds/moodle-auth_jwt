@@ -24,13 +24,13 @@ $PAGE->set_url('/auth/jwt/login.php');
 $PAGE->set_context(context_system::instance());
 $urltogo = $CFG->wwwroot;
 
-$GLOBALS['valid_token'] = true;
-
 $payload = JWT::decode($token);
 $subject = get_complete_user_data('idnumber', $userId);
 
 if ($subject->id === $payload->sub)
 {
+    $GLOBALS['valid_token'] = true;
+
     $user = authenticate_user_login($subject->username, time());
     $USER = complete_user_login($user);
     $USER->loggedin = true;
@@ -42,5 +42,6 @@ if ($subject->id === $payload->sub)
 }
 else
 {
+    $GLOBALS['valid_token'] = false;
     throw new \Exception("Token is not valid for the given user.");
 }
