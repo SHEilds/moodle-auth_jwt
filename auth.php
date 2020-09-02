@@ -89,7 +89,7 @@ class auth_plugin_jwt extends \auth_plugin_base
 
     public function user_update($oldUser, $newUser)
     {
-        return null;
+        return true;
     }
 
     public function user_delete($oldUser)
