@@ -22,20 +22,20 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['pluginname'] = 'jwt';
+$string['pluginname'] = 'JSON Web Token';
 $string['plugingroup'] = 'jwt';
 
 /**
  * JWT localisation
  */
 $string['jwtissuer'] = 'Token Issuer';
-$string['jwtissuer_desc'] = 'The issuer domain of the token.';
+$string['jwtissuer_desc'] = 'The issuer domain of the token';
 $string['jwtsecret'] = 'Token Secret Key';
-$string['jwtsecret_desc'] = 'The secret key to encrypt JWT with.';
+$string['jwtsecret_desc'] = 'The secret key to encrypt JWT with';
 $string['jwtexpiry'] = 'Token Expiry';
-$string['jwtexpiry_desc'] = 'Time until tokens expire, in seconds.';
+$string['jwtexpiry_desc'] = 'Time until tokens expire, in seconds';
 $string['jwtlogoutpage'] = 'Log Out Page';
-$string['jwtlogoutpage_desc'] = 'The page which the user will be redirected to upon logout.';
+$string['jwtlogoutpage_desc'] = 'The page which the user will be redirected to upon logout';
 
 /**
  * Database localisation
@@ -54,7 +54,11 @@ $string['jwtdatabase_desc'] = 'The database to use for external users';
 $string['jwtdatabasetable'] = 'External user database table';
 $string['jwtdatabasetable_desc'] = 'The database table to use for external users';
 $string['jwtdatabaseuserfield'] = 'Database username field';
-$string['jwtdatabaseuserfield_desc'] = 'The table field to use for username vaules';
+$string['jwtdatabaseuserfield_desc'] = 'The table column to use for username vaules';
+$string['jwtdatabaseemailfield'] = 'Database email field';
+$string['jwtdatabaseemailfield_desc'] = 'The table column to use for email vaules';
+$string['jwtdatabasepasswordfield'] = 'Database password field';
+$string['jwtdatabasepasswordfield_desc'] = 'The table column to use for password values';
 $string['jwtsybasequoting'] = 'Use sybase quotes';
 $string['jwtsybasequoting_desc'] = 'Sybase style single quote escaping - needed for Oracle, MS SQL and some other databases. Do not use for MySQL!';
 $string['jwtextrafields'] = 'These fields are optional.  You can choose to pre-fill some Moodle user fields with information from the <b>external database fields</b> that you specify here. <p>If you leave these blank, then defaults will be used.</p><p>In either case, the user will be able to edit all of these fields after they log in.</p>';
@@ -80,11 +84,20 @@ $string['auth_jwtsyncuserstask'] = 'Synchronise jwt users task';
 /**
  * Error message localisation
  */
-$string['userchangeemail'] = 'For authentication purposes, users are not allowed to alter their email address.';
+$string['userchangeemail'] = 'For authentication purposes, users are not allowed to alter their email address';
 $string['auth_jwtrevivedusererror'] = 'Error reviving user {$a}';
 $string['auth_jwtdeleteusererror'] = 'Error deleting user {$a}';
 $string['auth_jwtinsertusererror'] = 'Error inserting user {$a}';
 $string['auth_jwtinsertusererrorverbose'] = 'Error inserting user {$a->username} ({$a->message})';
-$string['auth_jwtinsertuserduplicate'] = 'Error inserting user {$a->username} - user with this username was already created through \'{$a->auth}\' plugin.';
-$string['auth_jwtinseruserduplicateid'] = 'Error inserting user {$a->username} with idnumber {$a->idnumber}, a user with the idnumber already exists.';
+$string['auth_jwtinsertuserduplicate'] = 'Error inserting user {$a->username} - user with this username was already created through \'{$a->auth}\' plugin';
+$string['auth_jwtinseruserduplicateid'] = 'Error inserting user {$a->username} with idnumber {$a->idnumber}, a user with the idnumber already exists';
 $string['auth_jwtcantconnect'] = 'Could not connect to the specified authentication database...';
+$string['auth_jwtnotconfigured'] = 'Authentication database not properly configured';
+
+/**
+ * Authentication localisation
+ */
+$string['allowmanuallogin'] = 'Manual Authentication';
+$string['allowmanuallogin_desc'] = 'Allow users to login with their username and password';
+$string['loginsalt'] = 'Password salt';
+$string['loginsalt_desc'] = 'Salt used in the MD5 of passwords - MD5 is very insecure with a high collision chance';

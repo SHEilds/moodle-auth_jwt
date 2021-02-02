@@ -55,8 +55,11 @@ class auth_jwt_external extends external_api
     {
         global $DB;
 
-        $params = self::validate_parameters(self::authenticate_parameters(), array('idnumber' => $idnumber));
-        $user = get_complete_user_data('idnumber', $idnumber);
+        $user = $DB->get_record('user', [
+            'idnumber' => $idnumber
+        ]);
+
+        // $user = get_complete_user_data('idnumber', $idnumber);
 
         if (!$user)
         {
@@ -123,6 +126,7 @@ class auth_jwt_external extends external_api
                         'email' => new external_value(PARAM_TEXT, 'The new email of the external user'),
                         'firstname' => new external_value(PARAM_TEXT, 'The first name of the user'),
                         'lastname' => new external_value(PARAM_TEXT, 'The last name of the user'),
+                        'password' => new external_value(PARAM_TEXT, 'The password for the user')
                     )
                 )
             )
@@ -157,6 +161,7 @@ class auth_jwt_external extends external_api
         $user->auth = 'jwt';
         $user->deleted = 0;
         $user->confirmed = 1;
+        $user->mnethostid = $CFG->mnet_localhost_id;
 
         $user->username = trim($user->username);
 
@@ -184,6 +189,7 @@ class auth_jwt_external extends external_api
                         'email' => new external_value(PARAM_TEXT, 'The new email of the external user'),
                         'firstname' => new external_value(PARAM_TEXT, 'The first name of the user'),
                         'lastname' => new external_value(PARAM_TEXT, 'The last name of the user'),
+                        'password' => new external_value(PARAM_TEXT, 'The password for the user')
                     )
                 )
             )
@@ -201,7 +207,7 @@ class auth_jwt_external extends external_api
 
     public static function update_user($jwt, $secret, $userdata)
     {
-        global $DB;
+        global $CFG, $DB;
 
         $config = get_config('auth_jwt');
 
@@ -232,6 +238,7 @@ class auth_jwt_external extends external_api
                 $user->auth = 'jwt';
                 $user->deleted = 0;
                 $user->confirmed = 1;
+                $user->mnethostid = $CFG->mnet_localhost_id;
 
                 $user->username = trim($user->username);
 
@@ -248,7 +255,7 @@ class auth_jwt_external extends external_api
 
                 $user->username = trim($user->username);
 
-                user_update_user($user, false);
+                $DB->update_record('user', $user);
             }
 
             return [

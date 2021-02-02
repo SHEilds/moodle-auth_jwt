@@ -52,17 +52,64 @@ class auth_plugin_jwt extends \auth_plugin_base
      * Returns true if the username and password work or don't exist and false
      * if the user exists and the password is wrong.
      *
-     * @param string $username The username 
+     * @param string $username The username
      * @param string $password The password
      * @return bool Authentication success or failure.
      */
     public function user_login($username, $password)
     {
-        if (isset($GLOBALS['valid_token']) && $GLOBALS['valid_token'])
+        $config = get_config('auth_jwt');
+
+        error_log(isset($GLOBALS['valid_token']));
+        if (isset($GLOBALS['valid_token']))
         {
-            // TODO: Set the valid_token in GLOBALS on verification.
+            error_log($GLOBALS['valid_token']);
+        }
+
+        // Attempt the JWT method.
+        if (isset($GLOBALS['valid_token']) && $GLOBALS['valid_token'] == true)
+        {
             unset($GLOBALS['valid_token']);
             return true;
+        }
+
+        // Attempt the manual credential method.
+        else if ($config->allowmanuallogin)
+        {
+            if (isset($username) && isset($password))
+            {
+                global $DB;
+
+                $viableUser = $DB->get_record('user', array(
+                    'username' => $username
+                ));
+
+                if ($viableUser)
+                {
+                    if (substr($viableUser->password, 0, 4) == "$2y$")
+                    {
+                        // Perform blowfish password verification.
+                        if (password_verify($password, $viableUser->password))
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        // Perform MD5 hash comparison.
+                        $passwordHash = md5($password . $config->loginsalt);
+
+                        if ($passwordHash == $viableUser->password)
+                        {
+                            // Upgrade the MD5 password to a blowfish
+                            $viableUser->password = password_hash($password, PASSWORD_DEFAULT);
+                            $DB->update_record('user', $viableUser);
+
+                            return true;
+                        }
+                    }
+                }
+            }
         }
 
         return false;
@@ -102,13 +149,17 @@ class auth_plugin_jwt extends \auth_plugin_base
      * called when the user password is updated.
      *
      * @param  object  $user        User table object
-     * @param  string  $newpassword Plaintext password
+     * @param  string  $newpassword New password - Plaintext if internal (Not allowed in JWT)
      * @return boolean result
      *
      */
     public function user_update_password($user, $newpassword)
     {
-        $user = get_complete_user_data('id', $user->id);
+        global $DB;
+
+        $user->password = $newpassword;
+
+        $DB->update_record('user', $user);
     }
 
     /**
@@ -121,7 +172,7 @@ class auth_plugin_jwt extends \auth_plugin_base
     {
         if (!$this->is_configured())
         {
-            throw new moodle_exception('auth_jwtcantconnect', 'auth_jwt');
+            throw new moodle_exception('auth_jwtnotconfigured', 'auth_jwt');
         }
 
         // Connect to the external database (forcing new connection).
@@ -155,6 +206,8 @@ class auth_plugin_jwt extends \auth_plugin_base
      */
     function db_attributes()
     {
+        $config = get_config('auth_jwt');
+
         $moodleattributes = array();
 
         // If we have custom fields then merge them with user fields.
@@ -170,15 +223,19 @@ class auth_plugin_jwt extends \auth_plugin_base
 
         foreach ($userfields as $field)
         {
-            if (!empty($this->config->{"field_map_$field"}))
+            if (!empty($config->{"field_map_$field"}))
             {
-                $moodleattributes[$field] = $this->config->{"field_map_$field"};
+                $moodleattributes[$field] = $config->{"field_map_$field"};
             }
         }
 
-        $moodleattributes['username'] = $this->config->databaseuserfield;
+        $moodleattributes['username'] = $config->databaseuserfield;
 
-
+        // If a password field has been set, include it.
+        if (!empty($config->databasepasswordfield))
+        {
+            $moodleattributes['password'] = $config->databasepasswordfield;
+        }
 
         return $moodleattributes;
     }
@@ -206,8 +263,8 @@ class auth_plugin_jwt extends \auth_plugin_base
         if ($selectfields)
         {
             $select = array();
-
             $fieldcount = 0;
+
             foreach ($selectfields as $localname => $externalname)
             {
                 // Without aliasing, multiple occurrences of the same external
@@ -227,7 +284,7 @@ class auth_plugin_jwt extends \auth_plugin_base
             {
                 $sql = "SELECT $select
                         FROM {$this->config->databasetable}
-                        WHERE {$this->config->fielduser} = {$identifier}";
+                        WHERE {$this->config->databaseuserfield} = {$identifier}";
             }
 
             $rs = $authdb->Execute($sql);
@@ -262,7 +319,7 @@ class auth_plugin_jwt extends \auth_plugin_base
      * @param string $idnumber user ID number
      * @return array
      */
-    function get_userinfo_asobj($idnumber)
+    function get_userinfo_asobj($idnumber): stdClass
     {
         $user_array = truncate_userinfo($this->get_userinfo($idnumber, true));
 
@@ -292,10 +349,9 @@ class auth_plugin_jwt extends \auth_plugin_base
         {
             while ($rec = $rs->FetchRow())
             {
-                $rec = array_change_key_case((array)$rec, CASE_LOWER);
                 // Set the index as the user's idnumber, instead.
+                $rec = array_change_key_case((array)$rec, CASE_LOWER);
                 $result[$rec[$this->config->field_map_idnumber]] = strtolower(trim($rec[$this->config->databaseuserfield]));
-                // array_push($result, $rec[strtolower($this->config->databaseuserfield)]);
             }
         }
 
@@ -327,6 +383,8 @@ class auth_plugin_jwt extends \auth_plugin_base
         require_once($CFG->dirroot . '/user/lib.php');
 
         // List external users.
+        // [idnumber => username]
+        // username: trim/tolower
         $userlist = $this->get_userlist();
 
         // Delete obsolete internal users.
@@ -444,7 +502,7 @@ class auth_plugin_jwt extends \auth_plugin_base
                     $params['mnethostid'] = $CFG->mnet_localhost_id;
                     $sql = "SELECT u.id, u.username, u.idnumber, u.suspended
                           FROM {user} u
-                         WHERE u.auth = :authtype AND u.deleted = 0 AND u.mnethostid = :mnethostid AND u.idnumber {$in_sql}";
+                         WHERE u.auth = :authtype AND u.deleted = 0 AND u.idnumber {$in_sql}";
 
                     $update_users = $update_users + $DB->get_records_sql($sql, $params);
                 }
@@ -456,11 +514,25 @@ class auth_plugin_jwt extends \auth_plugin_base
                     {
                         if ($this->update_user_record($user->idnumber, $updatekeys, false, (bool) $user->suspended))
                         {
-                            $trace->output(get_string('auth_jwtupdatinguser', 'auth_jwt', array('name' => $user->username, 'id' => $user->id)), 1);
+                            $trace->output(
+                                get_string(
+                                    'auth_jwtupdatinguser',
+                                    'auth_jwt',
+                                    ['name' => $user->username, 'id' => $user->id]
+                                ),
+                                1
+                            );
                         }
                         else
                         {
-                            $trace->output(get_string('auth_jwtupdatinguser', 'auth_jwt', array('name' => $user->username, 'id' => $user->id)) . " - " . get_string('skipped'), 1);
+                            // $trace->output(
+                            //     get_string(
+                            //         'auth_jwtupdatinguser',
+                            //         'auth_jwt',
+                            //         ['name' => $user->username, 'id' => $user->id]
+                            //     ) . " - " . get_string('skipped'),
+                            //     1
+                            // );
                         }
                     }
 
@@ -468,7 +540,6 @@ class auth_plugin_jwt extends \auth_plugin_base
                 }
             }
         }
-
 
         // Create missing accounts.
         // NOTE: this is very memory intensive and generally inefficient.
@@ -549,8 +620,8 @@ class auth_plugin_jwt extends \auth_plugin_base
                     $user->lang = $CFG->lang;
                 }
 
-                $duplicateIdnumberCollision = $DB->get_record('user', array('idnumber' => $user->idnumber));
-                $alternateAuthCollision = $DB->get_record_select(
+                $existingUserByIdnumber = $DB->get_record('user', array('idnumber' => $user->idnumber));
+                $existingUserByAuthType = $DB->get_record_select(
                     'user',
                     "idnumber = :idnumber AND auth <> :auth",
                     array(
@@ -560,19 +631,50 @@ class auth_plugin_jwt extends \auth_plugin_base
                     'id,auth'
                 );
 
-                if ($duplicateIdnumberCollision)
+                if ($existingUserByIdnumber)
                 {
-                    $trace->output(get_string('auth_jwtinseruserduplicateid', 'auth_jwt', array('username' => $user->username, 'idnumber' => $userIdNumber)), 1);
+                    // Use external as the source of thruth and update the user.
+                    $authdb = $this->db_init();
+
+                    $oldemail = $existingUserByIdnumber->email;
+                    $oldusername = $existingUserByIdnumber->username;
+
+                    $rs = $authdb->Execute(
+                        "SELECT {$this->config->databaseuserfield},
+                                {$this->config->databaseemailfield}
+                        FROM {$this->config->databasetable}
+                        WHERE {$this->config->field_map_idnumber} = {$user->idnumber}"
+                    );
+
+                    if (!$rs)
+                    {
+                        print_error('auth_jwtcantconnect', 'auth_jwt');
+                    }
+                    else if (!$rs->EOF)
+                    {
+                        while ($rec = $rs->FetchRow())
+                        {
+                            $rec = array_change_key_case((array)$rec, CASE_LOWER);
+
+                            $existingUserByIdnumber->username = strtolower(trim($rec[$this->config->databaseuserfield]));
+                            $existingUserByIdnumber->email = strtolower(trim($rec[$this->config->databaseemailfield]));
+                        }
+                    }
+
+                    $authdb->Close();
+                    $trace->output("Found idnumber collision ({$existingUserByIdnumber->idnumber}): rectifying with external source. ({$oldemail} <--> {$existingUserByIdnumber->email}), ({$oldusername} <--> {$existingUserByIdnumber->username})");
+                    $DB->update_record('user', $existingUserByIdnumber);
+
                     continue;
                 }
 
-                if ($alternateAuthCollision)
+                if ($existingUserByAuthType)
                 {
                     $trace->output(get_string('auth_jwtinsertuserduplicate', 'auth_jwt', array('username' => $user->username, 'auth' => $collision->auth)), 1);
                     continue;
                 }
 
-                if (!$alternateAuthCollision && !$duplicateIdnumberCollision)
+                if (!$existingUserByAuthType && !$existingUserByIdnumber)
                 {
                     try
                     {
@@ -616,9 +718,117 @@ class auth_plugin_jwt extends \auth_plugin_base
         return 0;
     }
 
+    /**
+     * Update a local user record from an external source.
+     * This is a lighter version of the one in moodlelib -- won't do
+     * expensive ops such as enrolment.
+     *
+     * @param string $idnumber idnumber
+     * @param array $updatekeys fields to update, false updates all fields.
+     * @param bool $triggerevent set false if user_updated event should not be triggered.
+     *             This will not affect user_password_updated event triggering.
+     * @param bool $suspenduser Should the user be suspended?
+     * @return stdClass|bool updated user record or false if there is no new info to update.
+     */
+    protected function update_user_record($idnumber, $updatekeys = false, $triggerevent = false, $suspenduser = false)
+    {
+        global $CFG, $DB;
+
+        require_once($CFG->dirroot . '/user/profile/lib.php');
+
+        // Get the current user record.
+        $user = $DB->get_record('user', array('idnumber' => $idnumber));
+        if (empty($user))
+        { // Trouble.
+            error_log($this->errorlogtag . get_string('auth_usernotexist', 'auth', $user->username));
+            print_error('auth_usernotexist', 'auth', '', $user->username);
+            die;
+        }
+
+        // Protect the userid from being overwritten.
+        $userid = $user->id;
+
+        $needsupdate = false;
+
+        if ($newinfo = $this->get_userinfo($idnumber, true))
+        {
+            $newinfo = truncate_userinfo($newinfo);
+
+            if (empty($updatekeys))
+            { // All keys? this does not support removing values.
+                $updatekeys = array_keys($newinfo);
+            }
+
+            if (!empty($updatekeys))
+            {
+                $newuser = new stdClass();
+                $newuser->id = $userid;
+                // The cast to int is a workaround for MDL-53959.
+                $newuser->suspended = (int) $suspenduser;
+                // Load all custom fields.
+                $profilefields = (array) profile_user_record($user->id, false);
+                $newprofilefields = [];
+
+                foreach ($updatekeys as $key)
+                {
+                    if (isset($newinfo[$key]))
+                    {
+                        $value = $newinfo[$key];
+                    }
+                    else
+                    {
+                        $value = '';
+                    }
+
+                    if (!empty($this->config->{'field_updatelocal_' . $key}))
+                    {
+                        if (preg_match('/^profile_field_(.*)$/', $key, $match))
+                        {
+                            // Custom field.
+                            $field = $match[1];
+                            $currentvalue = isset($profilefields[$field]) ? $profilefields[$field] : null;
+                            $newprofilefields[$field] = $value;
+                        }
+                        else
+                        {
+                            // Standard field.
+                            $currentvalue = isset($user->$key) ? $user->$key : null;
+                            $newuser->$key = $value;
+                        }
+
+                        // Only update if it's changed.
+                        if ($currentvalue !== $value)
+                        {
+                            $needsupdate = true;
+                        }
+                    }
+                }
+            }
+
+            if ($this->config->allowmanuallogin && isset($newinfo['password']))
+            {
+                if (!empty($newinfo['password']))
+                {
+                    $newuser->password = $newinfo['password'];
+                    $needsupdate = true;
+                }
+            }
+
+            if ($needsupdate)
+            {
+                user_update_user($newuser, true, $triggerevent);
+                profile_save_custom_fields($newuser->id, $newprofilefields);
+                return $DB->get_record('user', array('id' => $userid, 'deleted' => 0));
+            }
+        }
+
+        return false;
+    }
+
     public function prevent_local_passwords()
     {
-        return !$this->is_internal();
+        // return !$this->is_internal();
+        return false;
     }
 
     function user_exists($idnumber)
@@ -677,7 +887,7 @@ class auth_plugin_jwt extends \auth_plugin_base
      */
     public function can_change_password()
     {
-        return false;
+        return true;
     }
 
     /**

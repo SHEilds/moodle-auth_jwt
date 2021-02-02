@@ -19,6 +19,7 @@ global $CFG, $USER, $SESSION, $err, $DB, $PAGE;
 
 $token = required_param('token', PARAM_TEXT);
 $userId = required_param('idnumber', PARAM_TEXT);
+$hash = required_param('hash', PARAM_TEXT);
 
 $PAGE->set_url('/auth/jwt/login.php');
 $PAGE->set_context(context_system::instance());
@@ -31,10 +32,19 @@ if ($subject->id === $payload->sub)
 {
     $GLOBALS['valid_token'] = true;
 
-    $user = authenticate_user_login($subject->username, time());
+    $user = authenticate_user_login($subject->username, $hash);
+
+    if ($user === false)
+    {
+        error_log($hash);
+    }
+
     $USER = complete_user_login($user);
     $USER->loggedin = true;
     $USER->site = $CFG->wwwroot;
+
+    $USER->password = $hash;
+    $DB->update_record('user', $USER);
 
     set_moodle_cookie($USER->username);
 

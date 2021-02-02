@@ -66,6 +66,20 @@ if ($hassiteconfig)
         PARAM_TEXT
     ));
 
+    $settings->add(new admin_setting_configcheckbox(
+        'auth_jwt/allowmanuallogin',
+        get_string('allowmanuallogin', 'auth_jwt'),
+        get_string('allowmanuallogin_desc', 'auth_jwt'),
+        '1'
+    ));
+
+    $settings->add(new admin_setting_configtext(
+        'auth_jwt/loginsalt',
+        get_string('loginsalt', 'auth_jwt'),
+        get_string('loginsalt_desc', 'auth_jwt'),
+        ''
+    ));
+
     /**
      * External User Database
      */
@@ -120,9 +134,25 @@ if ($hassiteconfig)
     ));
 
     $settings->add(new admin_setting_configtext(
+        'auth_jwt/databaseemailfield',
+        get_string('jwtdatabaseemailfield', 'auth_jwt'),
+        get_string('jwtdatabaseemailfield_desc', 'auth_jwt'),
+        '',
+        PARAM_TEXT
+    ));
+
+    $settings->add(new admin_setting_configtext(
         'auth_jwt/databaseuserfield',
         get_string('jwtdatabaseuserfield', 'auth_jwt'),
         get_string('jwtdatabaseuserfield_desc', 'auth_jwt'),
+        '',
+        PARAM_TEXT
+    ));
+
+    $settings->add(new admin_setting_configtext(
+        'auth_jwt/databasepasswordfield',
+        get_string('jwtdatabasepasswordfield', 'auth_jwt'),
+        get_string('jwtdatabasepasswordfield_desc', 'auth_jwt'),
         '',
         PARAM_TEXT
     ));
